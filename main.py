@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from google import genai
 from pydantic import BaseModel
 from typing import List, Optional
+from fastapi import FastAPI
+
 
 # ==========================================
 # 0. CONFIGURACIÓN INICIAL DE LA API DE GEMINI
@@ -16,6 +18,14 @@ if not api_key:
     raise ValueError("❌ Error: No se ha encontrado la variable GEMINI_API_KEY en tu archivo .env")
 
 client = genai.Client(api_key=api_key)
+
+app = FastAPI()
+
+@app.get("/")
+def leer_raiz():
+    return {"estado": "¡El Agente Electricista está activo y listo en Render!"}
+
+# (Aquí mantienes tus funciones de procesar nota de voz, SQLite, etc.)
 
 
 # ==========================================
