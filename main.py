@@ -77,6 +77,7 @@ def inicializar_base_de_datos():
     conexion.close()
 
 def procesar_nota_de_voz_bytes(contenido_audio: bytes, nombre_archivo: str, catalogo_precios: dict):
+    import json
     ruta_temp = f"temp_{nombre_archivo}"
     with open(ruta_temp, "wb") as f:
         f.write(contenido_audio)
@@ -94,25 +95,37 @@ def procesar_nota_de_voz_bytes(contenido_audio: bytes, nombre_archivo: str, cata
     - "Revisar la instalación" / "Revisión" -> Revisión y comprobación de seguridad eléctrica.
     - "Poner electrodoméstico" / "Conectar cocina" -> Instalación y configuración de electrodoméstico.
 
-    Tus directrices:
-    1. INTERPRETACIÓN: Extrae la información traduciendo la jerga coloquial a conceptos técnicos y limpios.
-    2. CRUCE DE DATOS: Compara y ajusta los servicios basándote en este catálogo oficial: {catalogo_precios}
-    3. RED DE SEGURIDAD: Si hay algún material o servicio que no encaje con total certeza, pon una advertencia clara en 'observaciones_imprevistos'.
+    Devuelve estrictamente un objeto JSON válido (sin formato markdown extra) con esta estructura exacta:
+    {{
+      "cliente": "Nombre del cliente detectado",
+      "urgencia": "Normal o Urgente",
+      "resumen_actuacion": "Resumen de lo realizado",
+      "desglose_lineas": [
+        {{"servicio_id": "SERV_01", "concepto": "Nombre del servicio", "cantidad": 1, "precio_unitario_mano_obra": 35.0, "subtotal_mano_obra": 35.0}}
+      ],
+      "materiales_a_utilizar": [
+        {{"material": "Nombre del material", "cantidad": 2, "es_material_furgoneta": true}}
+      ],
+      "total_estimado_mano_obra": 35.0,
+      "tiempo_total_estimado_horas": 1.0,
+      "observaciones_imprevistos": null
+    }}
+    Compara los servicios con este catálogo oficial: {catalogo_precios}
     """
 
     response = client.models.generate_content(
-        model='models/gemini-3.8-flash',
+        model='models/gemini-2.5-flash',
         contents=[audio_file, prompt_sistema],
         config={
             'response_mime_type': 'application/json',
-            'response_schema': PresupuestoEstructurado,
         },
     )
     
     if os.path.exists(ruta_temp):
         os.remove(ruta_temp)
         
-    return response.parsed
+    # Parseamos el texto JSON devuelto por Gemini a un diccionario de Python puro
+    return json.loads(response.text)
 
 def actualizar_inventario_y_generar_cesta(materiales_utilizados):
     conexion = sqlite3.connect("electricista.db")
