@@ -133,17 +133,21 @@ def actualizar_inventario_y_generar_cesta(materiales_utilizados):
     cesta_compra = []
     
     for item in materiales_utilizados:
-        cursor.execute("SELECT nombre_material, stock_actual, stock_minimo FROM inventario_furgoneta WHERE nombre_material LIKE ?", (f"%{item.material}%",))
+        # Cambiado a notación de diccionario []
+        mat_nombre = item["material"]
+        mat_cantidad = item["cantidad"]
+        
+        cursor.execute("SELECT nombre_material, stock_actual, stock_minimo FROM inventario_furgoneta WHERE nombre_material LIKE ?", (f"%{mat_nombre}%",))
         resultado = cursor.fetchone()
         
         if resultado:
             nombre_db, stock_actual, stock_minimo = resultado
-            nuevo_stock = stock_actual - item.cantidad
+            nuevo_stock = stock_actual - mat_cantidad
             cursor.execute("UPDATE inventario_furgoneta SET stock_actual = ? WHERE nombre_material = ?", (nuevo_stock, nombre_db))
             if nuevo_stock < stock_minimo:
                 cesta_compra.append({"material": nombre_db, "cantidad_a_comprar": stock_minimo - nuevo_stock, "tipo": "Reposición stock"})
         else:
-            cesta_compra.append({"material": item.material, "cantidad_a_comprar": item.cantidad, "tipo": "Encargo específico"})
+            cesta_compra.append({"material": mat_nombre, "cantidad_a_comprar": mat_cantidad, "tipo": "Encargo específico"})
             
     conexion.commit()
     conexion.close()
@@ -162,16 +166,17 @@ def generar_pdf_presupuesto(presupuesto, nombre_comercial, telefono_autonomo, ru
     story.append(Paragraph(f"⚡ {nombre_comercial}", estilo_titulo))
     story.append(Paragraph(f"Teléfono de contacto: {telefono_autonomo}", estilo_sub))
     
+    # Cambiado todo a notación de diccionario []
     story.append(Paragraph("<b>Datos del Cliente y Servicio</b>", estilo_h2))
-    story.append(Paragraph(f"<b>Cliente:</b> {presupuesto.cliente}", estilo_texto))
-    story.append(Paragraph(f"<b>Urgencia:</b> {presupuesto.urgencia}", estilo_texto))
-    story.append(Paragraph(f"<b>Actuación:</b> {presupuesto.resumen_actuacion}", estilo_texto))
+    story.append(Paragraph(f"<b>Cliente:</b> {presupuesto['cliente']}", estilo_texto))
+    story.append(Paragraph(f"<b>Urgencia:</b> {presupuesto['urgencia']}", estilo_texto))
+    story.append(Paragraph(f"<b>Actuación:</b> {presupuesto['resumen_actuacion']}", estilo_texto))
     story.append(Spacer(1, 10))
     
     story.append(Paragraph("<b>Desglose de Mano de Obra y Servicios</b>", estilo_h2))
     data_tabla = [["Concepto", "Cant.", "Precio U.", "Subtotal"]]
-    for linea in presupuesto.desglose_lineas:
-        data_tabla.append([linea.concepto, str(linea.cantidad), f"{linea.precio_unitario_mano_obra:.2f} €", f"{linea.subtotal_mano_obra:.2f} €"])
+    for linea in presupuesto['desglose_lineas']:
+        data_tabla.append([linea['concepto'], str(linea['cantidad']), f"{linea['precio_unitario_mano_obra']:.2f} €", f"{linea['subtotal_mano_obra']:.2f} €"])
     
     t = Table(data_tabla, colWidths=[240, 50, 80, 80])
     t.setStyle(TableStyle([
@@ -187,12 +192,12 @@ def generar_pdf_presupuesto(presupuesto, nombre_comercial, telefono_autonomo, ru
     story.append(t)
     story.append(Spacer(1, 10))
     
-    story.append(Paragraph(f"<b>TOTAL ESTIMADO MANO DE OBRA: {presupuesto.total_estimado_mano_obra:.2f} €</b>", ParagraphStyle('Total', parent=estilo_texto, fontSize=12, textColor=colors.HexColor("#166534"))))
+    story.append(Paragraph(f"<b>TOTAL ESTIMADO MANO DE OBRA: {presupuesto['total_estimado_mano_obra']:.2f} €</b>", ParagraphStyle('Total', parent=estilo_texto, fontSize=12, textColor=colors.HexColor("#166534"))))
     
-    if presupuesto.observaciones_imprevistos:
+    if presupuesto.get('observaciones_imprevistos'):
         story.append(Spacer(1, 10))
         story.append(Paragraph("<b>Observaciones / Notas:</b>", estilo_h2))
-        story.append(Paragraph(presupuesto.observaciones_imprevistos, estilo_texto))
+        story.append(Paragraph(presupuesto['observaciones_imprevistos'], estilo_texto))
         
     doc.build(story)
     return ruta_pdf
