@@ -93,7 +93,7 @@ def procesar_nota_de_voz_bytes(contenido_audio: bytes, nombre_archivo: str, cata
     """
 
     response = client.models.generate_content(
-        model='models/gemini-3.8-flash', # <-- Modelo actualizado y correcto
+        model='models/gemini-1.5-flash',  # Modelo ultraestable y sin picos de saturación
         contents=[audio_file, prompt_sistema],
         config={
             'response_mime_type': 'application/json',
